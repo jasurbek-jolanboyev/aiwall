@@ -1,0 +1,56 @@
+name: aiwall
+description: AIWall - Smart Assistant
+version: 1.0.0+1
+
+environment:
+  sdk: ">=3.0.0 <4.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  video_player: ^2.8.1
+  lucide_icons: ^0.257.0
+  speech_to_text: ^6.5.1
+  flutter_tts: ^3.8.5
+  youtube_player_flutter: ^8.1.2
+  connectivity_plus: ^6.0.3
+  avatar_glow: ^2.0.2
+  font_awesome_flutter: ^10.7.0
+  url_launcher: ^6.2.4
+  carousel_slider: ^4.2.1
+  provider: ^6.1.1
+  image_picker: ^1.0.7
+  path: ^1.8.3
+  webview_flutter: ^4.2.2
+
+dev_dependencies:
+  flutter_lints: ^3.0.1
+  flutter_launcher_icons: ^0.13.1
+  flutter_native_splash: ^2.4.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/videos/sample.mp4
+    - assets/images/profile.jpg
+    - assets/images/news1.jpg
+    - assets/images/news2.jpg
+    - assets/images/news3.jpg
+    - assets/images/article1.jpg
+    - assets/images/video1.jpg
+    - assets/images/trending1.png
+    - assets/images/logo.png
+    - assets/images/creator.jpg
+
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/images/logo.png"
+
+flutter_native_splash:
+  color: "#000000"
+  image: assets/images/logo.png
+  android: true
+  ios: false
+  android_gravity: center

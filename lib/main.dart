@@ -25,6 +25,7 @@ import 'screens/channel_request_screen.dart';
 import 'screens/safe_browser_screen.dart';
 import 'screens/animated_splash_screen.dart'; // Splash ekrani
 import 'screens/creator_page.dart'; // Siz haqingizdagi sahifa
+import 'screens/user_list_screen.dart'; // 🔥 Qo‘shilgan yangi sahifa
 
 void main() {
   runApp(
@@ -59,7 +60,7 @@ class MyApp extends StatelessWidget {
       /// 🟢 Sahifalar ro'yxati
       routes: {
         '/splash': (context) => const AnimatedSplashScreen(),
-        '/creator': (context) => const CreatorPage(), // Siz haqingizdagi sahifa
+        '/creator': (context) => const CreatorPage(),
         '/login': (context) => const LoginScreen(),
         '/dashboard': (context) => const DashboardPage(),
         '/dashboard_screen': (context) => const DashboardScreen(),
@@ -76,6 +77,7 @@ class MyApp extends StatelessWidget {
         '/faq': (context) => const FAQScreen(),
         '/admin_chat': (context) => const AdminChatScreen(),
         '/channel_request': (context) => const ChannelRequestScreen(),
+        '/users': (context) => UserListScreen(), // ✅ Qo‘shilgan yangi sahifa
       },
     );
   }

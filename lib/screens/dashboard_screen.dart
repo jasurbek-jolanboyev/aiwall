@@ -1,9 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:video_player/video_player.dart';
+import '../models/user.dart';
+import 'chat_screen.dart';
+import 'profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -13,44 +17,46 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  final stt.SpeechToText _speech = stt.SpeechToText();
+  bool _isListening = false;
+  String _recognizedText = "Ovozli buyruqni bu yerga yozing...";
+
   File? _pickedImage;
   File? _pickedVideo;
   final ImagePicker _picker = ImagePicker();
-
-  late YoutubePlayerController _youtubeController;
-  late Widget _youtubePlayerWidget;
-  String _comment = "Bu video portfolioga oid.";
-  int _likeCount = 0;
-  bool _liked = false;
-
   VideoPlayerController? _videoController;
   bool _isVideoPlaying = false;
+
+  final List<Map<String, dynamic>> _posts = [];
+  int _postIdCounter = 0;
 
   @override
   void initState() {
     super.initState();
-
-    const videoUrl = "https://www.youtube.com/watch?v=HpkvCWUoiI8";
-    final videoId = YoutubePlayer.convertUrlToId(videoUrl);
-    _youtubeController = YoutubePlayerController(
-      initialVideoId: videoId ?? "",
-      flags: const YoutubePlayerFlags(
-        autoPlay: false,
-        mute: false,
-      ),
-    );
-
-    _youtubePlayerWidget = YoutubePlayer(
-      controller: _youtubeController,
-      showVideoProgressIndicator: true,
-    );
+    _initializeSpeech();
   }
 
-  @override
-  void dispose() {
-    _youtubeController.dispose();
-    _videoController?.dispose();
-    super.dispose();
+  Future<void> _initializeSpeech() async {
+    bool available = await _speech.initialize(
+      onStatus: (status) =>
+          setState(() => _isListening = status == 'listening'),
+      onError: (error) => print('Speech recognition error: $error'),
+    );
+    if (!available) {
+      setState(() => _recognizedText = "Ovozli boshqaruv mavjud emas");
+    }
+  }
+
+  void _startListening() async {
+    if (!_isListening) {
+      await _speech.listen(
+        onResult: (result) => setState(() {
+          _recognizedText = result.recognizedWords;
+        }),
+      );
+    } else {
+      _speech.stop();
+    }
   }
 
   Future<void> _initializeVideo(File file) async {
@@ -60,80 +66,87 @@ class _DashboardScreenState extends State<DashboardScreen> {
     setState(() {});
   }
 
+  void _addPost({File? image, File? video, String comment = "AIWall post"}) {
+    setState(() {
+      _posts.add({
+        'id': _postIdCounter++,
+        'image': image,
+        'video': video,
+        'comment': comment,
+        'likeCount': 0,
+        'liked': false,
+      });
+    });
+  }
+
+  void _editPost(int id, String newComment) {
+    setState(() {
+      final index = _posts.indexWhere((post) => post['id'] == id);
+      if (index != -1) {
+        _posts[index]['comment'] = newComment;
+      }
+    });
+  }
+
+  void _deletePost(int id) {
+    setState(() {
+      _posts.removeWhere((post) => post['id'] == id);
+      if (_posts.every((post) => post['video'] != _pickedVideo)) {
+        _pickedVideo = null;
+        _videoController?.dispose();
+        _videoController = null;
+      }
+      if (_posts.every((post) => post['image'] != _pickedImage)) {
+        _pickedImage = null;
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    _speech.stop();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        title: const Text("Jasurbek Jo'lanboyev"),
-        backgroundColor: Colors.black,
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: const Color(0xFF0A0A0A),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              Color(0xFF833AB4),
+              Color(0xFFFF0069),
+              Color(0xFFFDCB58),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+        ),
         child: ListView(
+          padding: const EdgeInsets.all(16),
           children: [
             _buildUserStories(),
-            const SizedBox(height: 24),
-            _buildLiveTalk(),
-            const SizedBox(height: 24),
-            const Text("Upcoming",
-                style: TextStyle(color: Colors.white70, fontSize: 16)),
-            const SizedBox(height: 12),
-            talkCard("Night talk", "Anna", "1AM"),
-            talkCard("Deep talk", "Anna", "2AM"),
-            const SizedBox(height: 16),
-            _buildMediaCard(_youtubePlayerWidget),
-            if (_pickedImage != null)
-              _buildMediaCard(
-                Container(
-                  height: 200,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    image: DecorationImage(
-                        image: FileImage(_pickedImage!), fit: BoxFit.cover),
-                  ),
-                ),
-                isImage: true,
-                file: _pickedImage,
-              ),
-            if (_pickedVideo != null &&
-                _videoController != null &&
-                _videoController!.value.isInitialized)
-              _buildMediaCard(
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      if (_videoController!.value.isPlaying) {
-                        _videoController!.pause();
-                        _isVideoPlaying = false;
-                      } else {
-                        _videoController!.play();
-                        _isVideoPlaying = true;
-                      }
-                    });
-                  },
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      AspectRatio(
-                        aspectRatio: _videoController!.value.aspectRatio,
-                        child: VideoPlayer(_videoController!),
-                      ),
-                      if (!_isVideoPlaying)
-                        const Icon(Icons.play_circle_fill,
-                            size: 64, color: Colors.white70),
-                    ],
-                  ),
-                ),
-                isVideo: true,
-                file: _pickedVideo,
-              ),
+            const SizedBox(height: 20),
+            _buildVoiceControl(),
+            const SizedBox(height: 20),
+            _buildParentalControl(),
+            const SizedBox(height: 20),
+            _buildSecurityMonitoring(),
+            const SizedBox(height: 20),
+            _buildSmartDeviceControl(),
+            const SizedBox(height: 20),
+            _buildAnalytics(),
+            const SizedBox(height: 20),
+            _buildSocialMediaPosts(),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.green,
-        child: const Icon(Icons.add),
+        backgroundColor: const Color(0xFF00E5FF),
+        child: const Icon(Icons.add, color: Colors.black),
         onPressed: () => _showUploadDialog(context),
       ),
     );
@@ -141,167 +154,460 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildUserStories() {
     return SizedBox(
-      height: 70,
-      child: ListView(
+      height: 90,
+      child: ListView.builder(
         scrollDirection: Axis.horizontal,
-        children: List.generate(6, (index) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8),
-            child: Column(
-              children: [
-                const CircleAvatar(
-                  radius: 24,
-                  backgroundImage: AssetImage("assets/images/profile.jpg"),
-                ),
-                const SizedBox(height: 4),
-                Text("User $index",
-                    style: const TextStyle(color: Colors.white, fontSize: 10))
-              ],
+        itemCount: 6,
+        itemBuilder: (_, index) {
+          final user = User(
+            id: 'user_$index',
+            name: 'User $index',
+            avatarUrl: 'https://i.pravatar.cc/150?img=${index + 1}',
+            email: 'user$index@example.com',
+          );
+          return GestureDetector(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProfileScreen(user: user),
+              ),
+            ),
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              child: Column(
+                children: [
+                  Hero(
+                    tag: user.id,
+                    child: CircleAvatar(
+                      radius: 30,
+                      backgroundImage: NetworkImage(user.avatarUrl),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    user.name,
+                    style: GoogleFonts.poppins(
+                      fontSize: 10,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
             ),
           );
-        }),
+        },
       ),
     );
   }
 
-  Widget _buildLiveTalk() {
+  Widget _buildVoiceControl() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.green[100],
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text("Let’s talk about new design trends",
-              style: TextStyle(fontSize: 16)),
-          const SizedBox(height: 8),
-          const Text("@design_trends"),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: List.generate(
-                  3,
-                  (index) => const Padding(
-                    padding: EdgeInsets.only(right: 4),
-                    child: CircleAvatar(
-                      radius: 12,
-                      backgroundImage: AssetImage("assets/images/profile.jpg"),
-                    ),
-                  ),
-                ),
+          Text(
+            "🎙 Ovozli Boshqaruv",
+            style: GoogleFonts.poppins(fontSize: 18, color: Colors.white),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            _recognizedText,
+            style: GoogleFonts.poppins(fontSize: 14, color: Colors.white70),
+          ),
+          const SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: _startListening,
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  _isListening ? Colors.red : const Color(0xFFFF0069),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-              ElevatedButton(
-                onPressed: () {},
-                child: const Text("Join"),
-              )
-            ],
+            ),
+            child: Text(
+              _isListening ? "Tinglashni To‘xtatish" : "Tinglashni Boshlash",
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget talkCard(String title, String author, String time) {
+  Widget _buildParentalControl() {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF1e1e1e),
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(20),
       ),
-      child: ListTile(
-        leading: const CircleAvatar(
-          backgroundImage: AssetImage("assets/images/profile.jpg"),
-        ),
-        title: Text(title, style: const TextStyle(color: Colors.white)),
-        subtitle: Text("$author • $time",
-            style: const TextStyle(color: Colors.white54)),
-        trailing: ElevatedButton(
-          onPressed: () {},
-          child: const Text("I'll Join"),
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "📍 Ota-Ona Nazorati",
+            style: GoogleFonts.poppins(fontSize: 18, color: Colors.white),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Farzandlaringizning joylashuvini real vaqt rejimida kuzating",
+            style: GoogleFonts.poppins(fontSize: 14, color: Colors.white70),
+          ),
+          const SizedBox(height: 10),
+          ListTile(
+            leading: const Icon(Icons.location_on, color: Colors.white),
+            title: Text(
+              "Mock Child Location: Tashkent, Uzbekistan",
+              style: GoogleFonts.poppins(fontSize: 14, color: Colors.white),
+              textAlign: TextAlign.start,
+            ),
+            subtitle: Text(
+              "Last updated: 11:40 PM, 20/07/2025",
+              style: GoogleFonts.poppins(fontSize: 12, color: Colors.white60),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("GPS Tracking Coming Soon")),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF0069),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              "Xaritada Ko‘rish",
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildMediaCard(Widget mediaWidget,
-      {bool isImage = false, bool isVideo = false, File? file}) {
+  Widget _buildSecurityMonitoring() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "🛡 Xavfsizlik Monitoringi",
+            style: GoogleFonts.poppins(fontSize: 18, color: Colors.white),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Qurilmadagi xavfli faollikni aniqlash va nazorat qilish",
+            style: GoogleFonts.poppins(fontSize: 14, color: Colors.white70),
+          ),
+          const SizedBox(height: 10),
+          ListTile(
+            leading: const Icon(Icons.warning, color: Colors.yellow),
+            title: Text(
+              "No suspicious activity detected",
+              style: GoogleFonts.poppins(fontSize: 14, color: Colors.white),
+            ),
+            subtitle: Text(
+              "Last scan: 11:35 PM, 20/07/2025",
+              style: GoogleFonts.poppins(fontSize: 12, color: Colors.white60),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Security Scan Coming Soon")),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF0069),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              "Qurilmani Skanerlash",
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSmartDeviceControl() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "🕹 Aqlli Qurilmalar",
+            style: GoogleFonts.poppins(fontSize: 18, color: Colors.white),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Smart qurilmalarni masofadan boshqaring",
+            style: GoogleFonts.poppins(fontSize: 14, color: Colors.white70),
+          ),
+          const SizedBox(height: 10),
+          ListTile(
+            leading: const Icon(Icons.lightbulb, color: Colors.white),
+            title: Text(
+              "Smart Light: Living Room",
+              style: GoogleFonts.poppins(fontSize: 14, color: Colors.white),
+            ),
+            subtitle: Text(
+              "Status: Off",
+              style: GoogleFonts.poppins(fontSize: 12, color: Colors.white60),
+            ),
+            trailing: Switch(
+              value: false,
+              onChanged: (value) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Device Control Coming Soon")),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAnalytics() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            "📊 Hisobotlar va Tahlil",
+            style: GoogleFonts.poppins(fontSize: 18, color: Colors.white),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            "Haftalik foydalanish statistikasi va tahlil",
+            style: GoogleFonts.poppins(fontSize: 14, color: Colors.white70),
+          ),
+          const SizedBox(height: 10),
+          ListTile(
+            leading: const Icon(Icons.analytics, color: Colors.white),
+            title: Text(
+              "Ekran vaqti: 4 soat 32 daqiqa",
+              style: GoogleFonts.poppins(fontSize: 14, color: Colors.white),
+            ),
+            subtitle: Text(
+              "Haftalik hisobot: 20/07/2025",
+              style: GoogleFonts.poppins(fontSize: 12, color: Colors.white60),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Detailed Analytics Coming Soon")),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF0069),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              "Batafsil Hisobot",
+              style: GoogleFonts.poppins(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSocialMediaPosts() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          "📸 Yangiliklar va Ijtimoiy Postlar",
+          style: GoogleFonts.poppins(fontSize: 18, color: Colors.white),
+        ),
+        const SizedBox(height: 8),
+        ..._posts.map((post) => _buildMediaCard(
+              post: post,
+              mediaWidget: post['image'] != null
+                  ? Container(
+                      height: 200,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(12),
+                        image: DecorationImage(
+                          image: FileImage(post['image']!),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
+                    )
+                  : GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          if (post['video'] != null &&
+                              _videoController != null &&
+                              _videoController!.value.isInitialized) {
+                            if (_videoController!.value.isPlaying) {
+                              _videoController!.pause();
+                              _isVideoPlaying = false;
+                            } else {
+                              _videoController!.play();
+                              _isVideoPlaying = true;
+                            }
+                          }
+                        });
+                      },
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          AspectRatio(
+                            aspectRatio:
+                                _videoController?.value.aspectRatio ?? 16 / 9,
+                            child: post['video'] != null &&
+                                    _videoController != null
+                                ? VideoPlayer(_videoController!)
+                                : Container(
+                                    color: Colors.black,
+                                    child: const Center(
+                                      child: Text(
+                                        "Video yuklanmadi",
+                                        style: TextStyle(color: Colors.white),
+                                      ),
+                                    ),
+                                  ),
+                          ),
+                          if (!_isVideoPlaying && post['video'] != null)
+                            const Icon(
+                              Icons.play_circle_fill,
+                              size: 64,
+                              color: Colors.white70,
+                            ),
+                        ],
+                      ),
+                    ),
+              isImage: post['image'] != null,
+              isVideo: post['video'] != null,
+              file: post['image'] ?? post['video'],
+            )),
+      ],
+    );
+  }
+
+  Widget _buildMediaCard({
+    required Map<String, dynamic> post,
+    required Widget mediaWidget,
+    required bool isImage,
+    required bool isVideo,
+    File? file,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Stack(
           alignment: Alignment.topRight,
           children: [
-            mediaWidget,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: mediaWidget,
+            ),
             PopupMenuButton<String>(
               color: Colors.grey[900],
               icon: const Icon(Icons.more_vert, color: Colors.white),
               onSelected: (value) {
                 if (value == 'edit') {
-                  // TODO: add editing functionality
+                  _showCommentDialog(post['id'], post['comment']);
                 } else if (value == 'delete') {
-                  setState(() {
-                    if (isImage) _pickedImage = null;
-                    if (isVideo) {
-                      _pickedVideo = null;
-                      _videoController?.dispose();
-                      _videoController = null;
-                    }
-                  });
+                  _deletePost(post['id']);
                 }
               },
-              itemBuilder: (BuildContext context) => [
-                const PopupMenuItem(value: 'edit', child: Text("Tahrirlash")),
-                const PopupMenuItem(value: 'delete', child: Text("O‘chirish")),
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: 'edit',
+                  child: Text(
+                    "Tahrirlash",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
+                const PopupMenuItem(
+                  value: 'delete',
+                  child: Text(
+                    "O‘chirish",
+                    style: TextStyle(color: Colors.white),
+                  ),
+                ),
               ],
             ),
           ],
         ),
-        _videoComment(_comment),
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            post['comment'],
+            style: GoogleFonts.poppins(color: Colors.white60),
+          ),
+        ),
         const SizedBox(height: 8),
         Row(
           children: [
             IconButton(
               onPressed: () {
                 setState(() {
-                  _liked = !_liked;
-                  _likeCount += _liked ? 1 : -1;
+                  post['liked'] = !post['liked'];
+                  post['likeCount'] += post['liked'] ? 1 : -1;
                 });
               },
-              icon: Icon(_liked ? Icons.favorite : Icons.favorite_border,
-                  color: _liked ? Colors.red : Colors.white),
+              icon: Icon(
+                post['liked'] ? Icons.favorite : Icons.favorite_border,
+                color: post['liked'] ? Colors.red : Colors.white,
+              ),
             ),
-            Text("$_likeCount", style: const TextStyle(color: Colors.white)),
+            Text(
+              "${post['likeCount']}",
+              style: const TextStyle(color: Colors.white),
+            ),
             IconButton(
               icon: const Icon(Icons.share, color: Colors.white),
               onPressed: () {
                 if (file != null) {
-                  Share.shareFiles([file.path],
-                      text: "Men bu faylni ulashayapman!");
+                  Share.shareFiles(
+                    [file.path],
+                    text: "AIWall post: ${post['comment']}",
+                  );
                 }
               },
             ),
             IconButton(
               icon: const Icon(Icons.comment, color: Colors.white),
-              onPressed: () => _showCommentDialog(),
+              onPressed: () => _showCommentDialog(post['id'], post['comment']),
             ),
           ],
-        )
+        ),
+        const SizedBox(height: 16),
       ],
-    );
-  }
-
-  Widget _videoComment(String comment) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Text(
-        comment,
-        style: const TextStyle(color: Colors.white60),
-      ),
     );
   }
 
@@ -319,8 +625,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
             const SizedBox(height: 10),
             ListTile(
               leading: const Icon(Icons.image, color: Colors.white),
-              title: const Text("Rasm yuklash",
-                  style: TextStyle(color: Colors.white)),
+              title: const Text(
+                "Rasm yuklash",
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () async {
                 Navigator.pop(context);
                 final XFile? file =
@@ -328,14 +636,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 if (file != null) {
                   setState(() {
                     _pickedImage = File(file.path);
+                    _addPost(image: _pickedImage);
                   });
                 }
               },
             ),
             ListTile(
               leading: const Icon(Icons.video_collection, color: Colors.white),
-              title: const Text("Video yuklash",
-                  style: TextStyle(color: Colors.white)),
+              title: const Text(
+                "Video yuklash",
+                style: TextStyle(color: Colors.white),
+              ),
               onTap: () async {
                 Navigator.pop(context);
                 final XFile? file =
@@ -344,6 +655,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   await _initializeVideo(File(file.path));
                   setState(() {
                     _pickedVideo = File(file.path);
+                    _addPost(video: _pickedVideo);
                   });
                 }
               },
@@ -354,17 +666,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  void _showCommentDialog() async {
-    final TextEditingController _controller =
-        TextEditingController(text: _comment);
+  void _showCommentDialog(int postId, String currentComment) async {
+    final TextEditingController controller =
+        TextEditingController(text: currentComment);
     await showDialog(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: Colors.black,
-        title:
-            const Text("Komment yozing", style: TextStyle(color: Colors.white)),
+        title: const Text(
+          "Komment yozing",
+          style: TextStyle(color: Colors.white),
+        ),
         content: TextField(
-          controller: _controller,
+          controller: controller,
           style: const TextStyle(color: Colors.white),
           decoration: const InputDecoration(
             hintText: "Komment...",
@@ -375,14 +689,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              setState(() {
-                _comment = _controller.text;
-              });
+              _editPost(postId, controller.text);
             },
-            child: const Text("Saqlash", style: TextStyle(color: Colors.green)),
-          )
+            child: const Text(
+              "Saqlash",
+              style: TextStyle(color: Colors.green),
+            ),
+          ),
         ],
       ),
     );
+    controller.dispose();
   }
 }

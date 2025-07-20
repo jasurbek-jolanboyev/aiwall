@@ -5,12 +5,15 @@ class SafeBrowserScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Colors.black,
-      body: Center(
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Xavfsiz Brauzer"),
+        backgroundColor: Colors.deepPurple,
+      ),
+      body: const Center(
         child: Text(
-          "Bu xavfsiz brauzer oynasi.",
-          style: TextStyle(fontSize: 18, color: Colors.white),
+          "Xavfsiz Brauzer kelasi!",
+          style: TextStyle(fontSize: 18),
         ),
       ),
     );

@@ -3,7 +3,7 @@ import '../screens/dashboard_screen.dart';
 import '../screens/chat_screen.dart';
 import '../screens/store_screen.dart';
 import '../screens/device_control_screen.dart';
-import 'safe_browser_screen.dart';
+import '../screens/safe_browser_screen.dart';
 
 class DashboardPage extends StatefulWidget {
   const DashboardPage({Key? key}) : super(key: key);
@@ -32,7 +32,9 @@ class _DashboardPageState extends State<DashboardPage> {
           IconButton(
             icon: const Icon(Icons.notifications),
             onPressed: () {
-              // Xabarnomalar uchun keyinchalik kod yozasiz
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Xabarnomalar kelasi")),
+              );
             },
           ),
           const Padding(
@@ -48,8 +50,10 @@ class _DashboardPageState extends State<DashboardPage> {
           children: [
             const DrawerHeader(
               decoration: BoxDecoration(color: Colors.deepPurple),
-              child: Text("AIWall Menu",
-                  style: TextStyle(fontSize: 24, color: Colors.white)),
+              child: Text(
+                "AIWall Menu",
+                style: TextStyle(fontSize: 24, color: Colors.white),
+              ),
             ),
             ListTile(
               leading: const Icon(Icons.newspaper),
@@ -64,7 +68,10 @@ class _DashboardPageState extends State<DashboardPage> {
               title: const Text("Xavfsiz Brauzer"),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Xavfsiz brauzer sahifasini yozing
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SafeBrowserScreen()),
+                );
               },
             ),
             ListTile(
@@ -80,7 +87,9 @@ class _DashboardPageState extends State<DashboardPage> {
               title: const Text("Kitoblar va Kurslar"),
               onTap: () {
                 Navigator.pop(context);
-                // TODO: Kitoblar sahifasi
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Kitoblar va Kurslar kelasi")),
+                );
               },
             ),
             ListTile(
@@ -104,8 +113,7 @@ class _DashboardPageState extends State<DashboardPage> {
               title: const Text("Profil"),
               onTap: () {
                 Navigator.pop(context);
-                Navigator.pushNamed(
-                    context, '/profile'); // profil_view_screen.dart
+                Navigator.pushNamed(context, '/profile');
               },
             ),
             ListTile(
@@ -127,7 +135,7 @@ class _DashboardPageState extends State<DashboardPage> {
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard), label: "Dashboard"),
+              icon: Icon(Icons.dashboard), label: "Yangiliklar"),
           BottomNavigationBarItem(icon: Icon(Icons.chat), label: "Chatlar"),
           BottomNavigationBarItem(icon: Icon(Icons.store), label: "Do‘kon"),
           BottomNavigationBarItem(

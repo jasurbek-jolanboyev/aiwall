@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 
 // Providerlar
 import 'providers/theme_provider.dart';
@@ -23,11 +25,23 @@ import 'screens/support/faq_screen.dart';
 import 'screens/support/admin_chat_screen.dart';
 import 'screens/channel_request_screen.dart';
 import 'screens/safe_browser_screen.dart';
-import 'screens/animated_splash_screen.dart'; // Splash ekrani
-import 'screens/creator_page.dart'; // Siz haqingizdagi sahifa
-import 'screens/user_list_screen.dart'; // 🔥 Qo‘shilgan yangi sahifa
+import 'screens/animated_splash_screen.dart';
+import 'screens/creator_page.dart';
+import 'screens/user_list_screen.dart';
+import 'screens/tracking_screen.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Firebase inizializatsiyasi
+  try {
+    await Firebase.initializeApp();
+    await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+    FlutterError.onError = FirebaseCrashlytics.instance.recordFlutterFatalError;
+  } catch (e) {
+    print('Firebase initialization failed: $e');
+  }
+
   runApp(
     MultiProvider(
       providers: [
@@ -53,11 +67,7 @@ class MyApp extends StatelessWidget {
       themeMode: themeProvider.themeMode,
       theme: ThemeData.light(useMaterial3: true),
       darkTheme: ThemeData.dark(useMaterial3: true),
-
-      /// 🟢 Splash sahifa birinchi ochiladi
       initialRoute: '/splash',
-
-      /// 🟢 Sahifalar ro'yxati
       routes: {
         '/splash': (context) => const AnimatedSplashScreen(),
         '/creator': (context) => const CreatorPage(),
@@ -77,7 +87,8 @@ class MyApp extends StatelessWidget {
         '/faq': (context) => const FAQScreen(),
         '/admin_chat': (context) => const AdminChatScreen(),
         '/channel_request': (context) => const ChannelRequestScreen(),
-        '/users': (context) => UserListScreen(), // ✅ Qo‘shilgan yangi sahifa
+        '/users': (context) => UserListScreen(), // const olib tashlandi
+        '/tracking': (context) => const TrackingScreen(),
       },
     );
   }

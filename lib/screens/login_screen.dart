@@ -1,7 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:lucide_icons/lucide_icons.dart'; // neon uslubda ikonlar uchun
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dashboard_page.dart';
+
+// CountryCode model for code, name, and flag
+class CountryCode {
+  final String code;
+  final String name;
+  final String flag;
+  CountryCode(this.code, this.name, this.flag);
+}
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,10 +24,50 @@ class _LoginScreenState extends State<LoginScreen>
   final TextEditingController phoneController = TextEditingController();
   bool isLogin = true;
   bool showPassword = false;
-  String? selectedField;
   String? errorText;
   bool isLoading = false;
 
+  // Country codes with flag and name
+  final List<CountryCode> countryCodes = [
+    CountryCode('+998', 'Uzbekistan', '🇺🇿'),
+    CountryCode('+7', 'Russia/Kazakhstan', '🇷🇺'),
+    CountryCode('+1', 'USA/Canada', '🇺🇸'),
+    CountryCode('+90', 'Turkey', '🇹🇷'),
+    CountryCode('+44', 'UK', '🇬🇧'),
+    CountryCode('+49', 'Germany', '🇩🇪'),
+    CountryCode('+81', 'Japan', '🇯🇵'),
+    CountryCode('+86', 'China', '🇨🇳'),
+    CountryCode('+91', 'India', '🇮🇳'),
+    CountryCode('+61', 'Australia', '🇦🇺'),
+    CountryCode('+33', 'France', '🇫🇷'),
+    CountryCode('+39', 'Italy', '🇮🇹'),
+    CountryCode('+82', 'South Korea', '🇰🇷'),
+    CountryCode('+34', 'Spain', '🇪🇸'),
+    CountryCode('+55', 'Brazil', '🇧🇷'),
+    CountryCode('+380', 'Ukraine', '🇺🇦'),
+    CountryCode('+996', 'Kyrgyzstan', '🇰🇬'),
+    CountryCode('+374', 'Armenia', '🇦🇲'),
+    CountryCode('+375', 'Belarus', '🇧🇾'),
+    CountryCode('+995', 'Georgia', '🇬🇪'),
+    CountryCode('+972', 'Israel', '🇮🇱'),
+    CountryCode('+93', 'Afghanistan', '🇦🇫'),
+    CountryCode('+964', 'Iraq', '🇮🇶'),
+    CountryCode('+966', 'Saudi Arabia', '🇸🇦'),
+    CountryCode('+971', 'UAE', '🇦🇪'),
+    CountryCode('+373', 'Moldova', '🇲🇩'),
+    CountryCode('+992', 'Tajikistan', '🇹🇯'),
+    CountryCode('+993', 'Turkmenistan', '🇹🇲'),
+    CountryCode('+994', 'Azerbaijan', '🇦🇿'),
+    CountryCode('+84', 'Vietnam', '🇻🇳'),
+    CountryCode('+62', 'Indonesia', '🇮🇩'),
+    CountryCode('+234', 'Nigeria', '🇳🇬'),
+    CountryCode('+256', 'Uganda', '🇺🇬'),
+    CountryCode('+27', 'South Africa', '🇿🇦'),
+  ];
+  late CountryCode selectedCountry =
+      countryCodes.firstWhere((c) => c.code == '+998');
+
+  // Fields (directions)
   final List<String> fields = [
     // IT sohalari
     'Dasturchi',
@@ -98,8 +145,111 @@ class _LoginScreenState extends State<LoginScreen>
     'Boshqa media yo‘nalishi',
   ];
 
+  List<String> selectedFields = [];
+
   late AnimationController _controller;
   late Animation<double> _animation;
+
+  void _showFieldsModal() async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black87,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      isScrollControlled: true,
+      builder: (context) {
+        return Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                "Yo‘nalishlar (max 12 ta):",
+                style: TextStyle(
+                  color: Colors.cyanAccent,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: fields.map((field) {
+                  final selected = selectedFields.contains(field);
+                  return FilterChip(
+                    label: Text(field,
+                        style: TextStyle(
+                            color: selected ? Colors.black : Colors.white)),
+                    selected: selected,
+                    backgroundColor: Colors.black54,
+                    selectedColor: Colors.cyanAccent,
+                    checkmarkColor: Colors.black,
+                    onSelected: (val) {
+                      setState(() {
+                        if (selected) {
+                          selectedFields.remove(field);
+                        } else {
+                          if (selectedFields.length < 12) {
+                            selectedFields.add(field);
+                          }
+                        }
+                      });
+                    },
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.deepPurpleAccent,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16)),
+                ),
+                child: const Text(
+                  "Tanlashni yakunlash",
+                  style: TextStyle(color: Colors.white),
+                ),
+              )
+            ],
+          ),
+        );
+      },
+    );
+    setState(() {}); // Modal yopilganda UI yangilansin
+  }
+
+  void _showCountryPicker() async {
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black87,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return ListView(
+          shrinkWrap: true,
+          children: countryCodes.map((country) {
+            return ListTile(
+              leading: Text(country.flag, style: const TextStyle(fontSize: 24)),
+              title: Text(
+                "${country.name} (${country.code})",
+                style: const TextStyle(color: Colors.white),
+              ),
+              onTap: () {
+                setState(() {
+                  selectedCountry = country;
+                });
+                Navigator.pop(context);
+              },
+            );
+          }).toList(),
+        );
+      },
+    );
+  }
 
   void _submit() async {
     setState(() {
@@ -112,7 +262,6 @@ class _LoginScreenState extends State<LoginScreen>
     final phone = phoneController.text.trim();
 
     if (!isLogin) {
-      // Sign Up: check phone and field
       if (phone.isEmpty || phone.length < 7) {
         setState(() {
           errorText = "To‘g‘ri telefon raqamini kiriting!";
@@ -120,9 +269,9 @@ class _LoginScreenState extends State<LoginScreen>
         });
         return;
       }
-      if (selectedField == null) {
+      if (selectedFields.isEmpty) {
         setState(() {
-          errorText = "Iltimos, yo‘nalishni tanlang!";
+          errorText = "Iltimos, kamida bitta yo‘nalishni tanlang!";
           isLoading = false;
         });
         return;
@@ -177,7 +326,6 @@ class _LoginScreenState extends State<LoginScreen>
     return IconButton(
       icon: Icon(icon, color: Colors.cyanAccent, size: 28),
       onPressed: () {
-        // TODO: link ochish uchun url_launcher qo‘shing
         debugPrint("Open $url");
       },
     );
@@ -189,7 +337,6 @@ class _LoginScreenState extends State<LoginScreen>
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Neon background gradient
           Container(
             decoration: const BoxDecoration(
               gradient: LinearGradient(
@@ -277,45 +424,92 @@ class _LoginScreenState extends State<LoginScreen>
                       ),
                       if (!isLogin) ...[
                         const SizedBox(height: 16),
-                        TextField(
-                          controller: phoneController,
-                          keyboardType: TextInputType.phone,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: const InputDecoration(
-                            labelText: 'Telefon raqami',
-                            labelStyle: TextStyle(color: Colors.white),
-                            enabledBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: Colors.cyanAccent),
+                        Row(
+                          children: [
+                            GestureDetector(
+                              onTap: _showCountryPicker,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8, vertical: 8),
+                                decoration: BoxDecoration(
+                                  border: Border(
+                                    bottom: BorderSide(
+                                        color: Colors.cyanAccent, width: 2),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      selectedCountry.flag,
+                                      style: const TextStyle(fontSize: 20),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      selectedCountry.code,
+                                      style: const TextStyle(
+                                          color: Colors.white, fontSize: 16),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      selectedCountry.name,
+                                      style: const TextStyle(
+                                          color: Colors.white70, fontSize: 14),
+                                    ),
+                                    const Icon(Icons.arrow_drop_down,
+                                        color: Colors.cyanAccent),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: TextField(
+                                controller: phoneController,
+                                keyboardType: TextInputType.phone,
+                                style: const TextStyle(color: Colors.white),
+                                decoration: const InputDecoration(
+                                  labelText: 'Telefon raqami',
+                                  labelStyle: TextStyle(color: Colors.white),
+                                  enabledBorder: UnderlineInputBorder(
+                                    borderSide:
+                                        BorderSide(color: Colors.cyanAccent),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 16),
-                        DropdownButtonFormField<String>(
-                          value: selectedField,
-                          dropdownColor: Colors.black87,
-                          decoration: const InputDecoration(
-                            labelText: 'Yo‘nalishni tanlang',
-                            labelStyle: TextStyle(color: Colors.white),
-                            enabledBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: Colors.cyanAccent),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: TextButton.icon(
+                            onPressed: _showFieldsModal,
+                            icon: const Icon(Icons.list_alt,
+                                color: Colors.cyanAccent),
+                            label: Text(
+                              selectedFields.isEmpty
+                                  ? "Yo‘nalishlar (max 12 ta)"
+                                  : "Tanlangan: ${selectedFields.length} ta",
+                              style: const TextStyle(
+                                  color: Colors.cyanAccent,
+                                  fontWeight: FontWeight.bold),
                             ),
                           ),
-                          items: fields
-                              .map((field) => DropdownMenuItem(
-                                    value: field,
-                                    child: Text(
-                                      field,
-                                      style:
-                                          const TextStyle(color: Colors.white),
-                                    ),
-                                  ))
-                              .toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              selectedField = value;
-                            });
-                          },
                         ),
+                        if (selectedFields.isNotEmpty)
+                          Wrap(
+                            spacing: 6,
+                            runSpacing: 6,
+                            children: selectedFields
+                                .map((f) => Chip(
+                                      label: Text(f),
+                                      backgroundColor: Colors.cyanAccent,
+                                      labelStyle:
+                                          const TextStyle(color: Colors.black),
+                                    ))
+                                .toList(),
+                          ),
                       ],
                       if (errorText != null)
                         Padding(

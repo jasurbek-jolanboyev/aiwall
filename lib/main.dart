@@ -7,6 +7,8 @@ import 'package:firebase_crashlytics/firebase_crashlytics.dart';
 import 'providers/theme_provider.dart';
 import 'providers/profile_provider.dart';
 import 'services/chat_service.dart';
+import 'screens/chat_provider.dart'; // 🆕 Qo‘shildi
+import 'screens/chat_screen.dart'; // 🆕 Qo‘shildi
 
 // Ekranlar
 import 'screens/login_screen.dart';
@@ -48,6 +50,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ThemeProvider()),
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
         ChangeNotifierProvider(create: (_) => ChatService()),
+        ChangeNotifierProvider(create: (_) => ChatProvider()), // 🆕 Qo‘shildi
       ],
       child: const MyApp(),
     ),
@@ -87,8 +90,11 @@ class MyApp extends StatelessWidget {
         '/faq': (context) => const FAQScreen(),
         '/admin_chat': (context) => const AdminChatScreen(),
         '/channel_request': (context) => const ChannelRequestScreen(),
-        '/users': (context) => UserListScreen(), // const olib tashlandi
+        '/users': (context) => UserListScreen(),
         '/tracking': (context) => const TrackingScreen(),
+
+        // 🆕 Chat Screen routing
+        '/chat': (context) => const ChatScreen(),
       },
     );
   }
